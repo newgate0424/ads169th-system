@@ -15,9 +15,12 @@ async function main() {
     create: {
       username: 'admin',
       password: hashedPassword,
+      name: 'Administrator',
+      email: 'admin@ads169th.com',
       role: 'ADMIN',
       teams: [],
       isLocked: false,
+      isActive: true,
     },
   })
   
@@ -32,9 +35,12 @@ async function main() {
     create: {
       username: 'employee',
       password: hashedEmployeePassword,
+      name: 'Employee User',
+      email: 'employee@ads169th.com',
       role: 'EMPLOYEE',
       teams: ['IT', 'Support'],
       isLocked: false,
+      isActive: true,
     },
   })
   

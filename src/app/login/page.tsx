@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingScreen } from '@/components/loading-screen'
+import { FacebookLoginButton } from '@/components/facebook-login-button'
 import { Lock, User } from 'lucide-react'
 
 export default function LoginPage() {
@@ -137,6 +138,22 @@ export default function LoginPage() {
                 เข้าสู่ระบบ
               </Button>
             </form>
+
+            <div className="my-4 flex items-center">
+              <div className="flex-1 border-t border-muted-foreground/20"></div>
+              <span className="px-3 text-sm text-muted-foreground">หรือ</span>
+              <div className="flex-1 border-t border-muted-foreground/20"></div>
+            </div>
+
+            <FacebookLoginButton
+              onSuccess={(response) => {
+                console.log('Facebook login success:', response)
+              }}
+              onError={(error) => {
+                setError(error)
+              }}
+              disabled={isLoading}
+            />
 
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</p>
