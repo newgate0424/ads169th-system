@@ -21,6 +21,12 @@ export function FacebookSDK({
   language = 'th_TH' 
 }: FacebookSDKProps) {
   useEffect(() => {
+    // Skip if no valid App ID
+    if (!appId || appId === 'your-facebook-app-id') {
+      console.warn('Facebook SDK: Invalid App ID provided')
+      return
+    }
+
     // Initialize Facebook SDK
     window.fbAsyncInit = function() {
       if (window.FB) {
@@ -33,6 +39,8 @@ export function FacebookSDK({
         
         // Log page view
         window.FB.AppEvents.logPageView()
+        
+        console.log('Facebook SDK initialized successfully')
       }
     }
 
@@ -47,6 +55,15 @@ export function FacebookSDK({
       script.src = `https://connect.facebook.net/${language}/sdk.js`
       script.async = true
       script.defer = true
+      
+      // Add load and error handlers
+      script.onload = () => {
+        console.log('Facebook SDK script loaded')
+      }
+      
+      script.onerror = () => {
+        console.error('Failed to load Facebook SDK')
+      }
 
       const firstScript = document.getElementsByTagName('script')[0]
       if (firstScript && firstScript.parentNode) {

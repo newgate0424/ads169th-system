@@ -21,62 +21,88 @@ export function FacebookLoginButton({
   const router = useRouter()
 
   const handleFacebookLogin = async () => {
+    // Check if Facebook SDK is ready
     if (!isReady) {
-      onError?.('Facebook SDK ยังไม่พร้อม')
+      onError?.('Facebook SDK ยังไม่พร้อม กรุณาลองใหม่อีกครั้ง')
+      return
+    }
+
+    // Check if App ID is valid
+    const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+    if (!appId || appId === 'your-facebook-app-id') {
+      onError?.('Facebook App ID ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ')
       return
     }
 
     setIsLoading(true)
 
-    login((response: any) => {
-      if (response.authResponse) {
-        // Facebook login successful
-        console.log('Facebook login successful:', response)
+    // Set timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setIsLoading(false)
+      onError?.('หมดเวลาการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง')
+    }, 30000) // 30 seconds timeout
+
+    try {
+      login((response: any) => {
+        clearTimeout(timeout) // Clear timeout when response received
         
-        // Here you can send the Facebook token to your backend
-        // to create a session or register the user
-        handleFacebookAuth(response.authResponse)
-      } else {
-        // User cancelled login or didn't fully authorize
-        console.log('Facebook login cancelled or failed:', response)
-        onError?.('การเข้าสู่ระบบด้วย Facebook ถูกยกเลิก')
-        setIsLoading(false)
-      }
-    }, {
-      scope: 'email,public_profile', // Permissions you want to request
-      return_scopes: true
-    })
+        if (response.authResponse) {
+          // Facebook login successful
+          console.log('Facebook login successful:', response)
+          handleFacebookAuth(response.authResponse)
+        } else {
+          // User cancelled login or didn't fully authorize
+          console.log('Facebook login cancelled or failed:', response)
+          onError?.('การเข้าสู่ระบบด้วย Facebook ถูกยกเลิก')
+          setIsLoading(false)
+        }
+      }, {
+        scope: 'email,public_profile',
+        return_scopes: true
+      })
+    } catch (error) {
+      clearTimeout(timeout)
+      console.error('Facebook login error:', error)
+      onError?.('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Facebook')
+      setIsLoading(false)
+    }
   }
 
   const handleFacebookAuth = async (authResponse: any) => {
     try {
-      // Get user info from Facebook
-      const { api } = useFacebookSDK()
-      
-      // You can call Facebook API to get user information
-      // and then send it to your backend for authentication
-      
-      // Example: Create or login user with Facebook data
+      // Set timeout for API call
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 seconds
+
       const res = await fetch('/api/auth/facebook', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accessToken: authResponse.accessToken,
           userID: authResponse.userID
-        })
+        }),
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
 
       const data = await res.json()
 
       if (res.ok) {
         onSuccess?.(data)
         router.push('/dashboard')
+        router.refresh()
       } else {
         onError?.(data.error || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Facebook auth error:', error)
-      onError?.('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Facebook')
+      
+      if (error.name === 'AbortError') {
+        onError?.('หมดเวลาการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง')
+      } else {
+        onError?.('เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Facebook')
+      }
     } finally {
       setIsLoading(false)
     }
