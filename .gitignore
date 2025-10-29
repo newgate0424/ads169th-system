@@ -40,3 +40,31 @@ yarn-error.log*
 
 # Prisma
 prisma/migrations/
+
+# Logs
+logs/
+*.log
+
+# PM2
+.pm2/
+
+# Editor
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+
+# OS
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+
+# Keep deployment files
+!.env.production
+!ecosystem.config.js
+!healthcheck.js
+!PLESK_DEPLOYMENT.md
