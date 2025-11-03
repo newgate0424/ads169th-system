@@ -74,12 +74,18 @@ export function SessionChecker() {
           const data = JSON.parse(e.newValue)
           console.log('Session revoked detected (localStorage):', data)
           
-          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่
+          // แสดง Dialog ทันทีโดยไม่ต้องรอ checkSession
+          globalSessionInvalidated = true
+          if (mountedRef.current) {
+            setShowDialog(true)
+          }
+          
+          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่ (เพื่อความแน่ใจ)
           checkSession().then((currentSessionValid) => {
-            // ถ้า API ตอบ 401 แสดงว่าเป็น session ของตัวเอง
-            if (!currentSessionValid && mountedRef.current) {
-              globalSessionInvalidated = true
-              setShowDialog(true)
+            // ถ้า session ยังใช้ได้ ให้ซ่อน dialog
+            if (currentSessionValid && mountedRef.current) {
+              globalSessionInvalidated = false
+              setShowDialog(false)
             }
           })
         } catch (err) {
@@ -96,12 +102,18 @@ export function SessionChecker() {
         if (event.data.type === 'SESSION_REVOKED') {
           console.log('Session revoked detected (BroadcastChannel):', event.data)
           
-          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่
+          // แสดง Dialog ทันทีโดยไม่ต้องรอ checkSession
+          globalSessionInvalidated = true
+          if (mountedRef.current) {
+            setShowDialog(true)
+          }
+          
+          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่ (เพื่อความแน่ใจ)
           checkSession().then((currentSessionValid) => {
-            // ถ้า API ตอบ 401 แสดงว่าเป็น session ของตัวเอง
-            if (!currentSessionValid && mountedRef.current) {
-              globalSessionInvalidated = true
-              setShowDialog(true)
+            // ถ้า session ยังใช้ได้ ให้ซ่อน dialog
+            if (currentSessionValid && mountedRef.current) {
+              globalSessionInvalidated = false
+              setShowDialog(false)
             }
           })
         }
