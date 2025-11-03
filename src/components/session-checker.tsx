@@ -18,9 +18,11 @@ let globalSessionInvalidated = false
 export function SessionChecker() {
   const router = useRouter()
   const [showDialog, setShowDialog] = useState(false)
+  const [countdown, setCountdown] = useState(5)
   const checkingRef = useRef(false)
   const lastCheckRef = useRef(Date.now())
   const mountedRef = useRef(true)
+  const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     mountedRef.current = true
@@ -78,12 +80,6 @@ export function SessionChecker() {
             if (!currentSessionValid && mountedRef.current) {
               globalSessionInvalidated = true
               setShowDialog(true)
-              
-              // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
-              setTimeout(() => {
-                document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-                window.location.href = '/login'
-              }, 2000)
             }
           })
         } catch (err) {
@@ -106,12 +102,6 @@ export function SessionChecker() {
             if (!currentSessionValid && mountedRef.current) {
               globalSessionInvalidated = true
               setShowDialog(true)
-              
-              // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
-              setTimeout(() => {
-                document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-                window.location.href = '/login'
-              }, 2000)
             }
           })
         }
@@ -160,11 +150,39 @@ export function SessionChecker() {
       if (broadcastChannel) {
         broadcastChannel.close()
       }
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current)
+      }
     }
   }, [])
 
+  // Countdown effect when dialog is shown
+  useEffect(() => {
+    if (showDialog) {
+      setCountdown(5)
+      countdownTimerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            handleConfirm()
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current)
+      }
+    }
+  }, [showDialog])
+
   const handleConfirm = () => {
     setShowDialog(false)
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current)
+    }
     // ลบ cookie และ redirect ไป login ทันที
     document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
     // ใช้ window.location แทน router.push เพื่อให้แน่ใจว่า redirect ทันที
@@ -172,33 +190,68 @@ export function SessionChecker() {
   }
 
   return (
-    <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-destructive">
-            ⚠️ ถูกบังคับออกจากระบบ
-          </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            <p>เซสชันของคุณถูกยกเลิกโดยผู้ดูแลระบบ</p>
-            <p className="text-sm">
-              เหตุผลที่เป็นไปได้:
+    <>
+      {/* Backdrop Overlay */}
+      {showDialog && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] animate-in fade-in duration-300" />
+      )}
+      
+      <AlertDialog open={showDialog} onOpenChange={setShowDialog}>
+        <AlertDialogContent className="z-[101] max-w-md border-destructive/50 shadow-2xl">
+          <AlertDialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center animate-in zoom-in duration-500">
+                <div className="text-4xl animate-pulse">⚠️</div>
+              </div>
+            </div>
+            <AlertDialogTitle className="text-center text-2xl font-bold text-destructive">
+              ถูกบังคับออกจากระบบ
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4 text-center">
+              <p className="text-base font-medium text-foreground">
+                เซสชันของคุณถูกยกเลิก
+              </p>
+              
+              <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-left">
+                <p className="text-sm font-semibold text-foreground/80">
+                  เหตุผลที่เป็นไปได้:
+                </p>
+                <ul className="text-sm space-y-1.5 text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <span className="text-destructive">•</span>
+                    <span>ผู้ดูแลระบบบังคับออกจากระบบ</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-destructive">•</span>
+                    <span>เข้าสู่ระบบจากอุปกรณ์อื่น</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-destructive">•</span>
+                    <span>เซสชันหมดอายุ</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3">
+                <p className="text-sm font-medium text-primary">
+                  🔐 กรุณาเข้าสู่ระบบใหม่เพื่อดำเนินการต่อ
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogAction 
+              onClick={handleConfirm}
+              className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
+            >
+              เข้าสู่ระบบใหม่ {countdown > 0 && `(${countdown})`}
+            </AlertDialogAction>
+            <p className="text-xs text-center text-muted-foreground">
+              จะเปลี่ยนหน้าอัตโนมัติใน {countdown} วินาที
             </p>
-            <ul className="text-sm list-disc list-inside space-y-1 text-muted-foreground">
-              <li>ผู้ดูแลระบบบังคับออกจากระบบ</li>
-              <li>เข้าสู่ระบบจากอุปกรณ์อื่น</li>
-              <li>เซสชันหมดอายุ</li>
-            </ul>
-            <p className="text-sm mt-4">
-              กรุณาเข้าสู่ระบบใหม่อีกครั้ง
-            </p>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={handleConfirm}>
-            เข้าสู่ระบบใหม่
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
