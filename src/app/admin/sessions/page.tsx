@@ -10,9 +10,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { UserCircle, Monitor, LogOut, RefreshCw } from 'lucide-react'
 import { LoadingScreen } from '@/components/loading-screen'
+import { useToast } from '@/hooks/use-toast'
 
 interface Session {
   id: string
@@ -31,6 +42,8 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [sessionToRevoke, setSessionToRevoke] = useState<string | null>(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     fetchSessions()
@@ -51,8 +64,6 @@ export default function SessionsPage() {
   }
 
   const handleRevokeSession = async (sessionId: string) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการบังคับออกจากระบบ?')) return
-
     try {
       const res = await fetch('/api/admin/sessions', {
         method: 'DELETE',
@@ -61,7 +72,7 @@ export default function SessionsPage() {
       })
 
       if (res.ok) {
-        // ส่งสัญญาณผ่าน BroadcastChannel (ใช้งานได้ทุก tab รวมถึง tab เดียวกัน)
+        // ส่งสัญญาณผ่าน BroadcastChannel เฉพาะ session ที่ถูกเตะออก
         const revokedSession = sessions.find(s => s.id === sessionId)
         if (revokedSession) {
           try {
@@ -88,12 +99,26 @@ export default function SessionsPage() {
           }, 1000)
         }
         
+        toast({
+          title: "บังคับออกจากระบบสำเร็จ",
+          description: "ผู้ใช้ถูกบังคับออกจากระบบแล้ว",
+        })
+        
+        setSessionToRevoke(null)
         fetchSessions()
       } else {
-        alert('ไม่สามารถออกจากระบบได้')
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถบังคับออกจากระบบได้",
+          variant: "destructive",
+        })
       }
     } catch (error) {
-      alert('เกิดข้อผิดพลาด')
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+        variant: "destructive",
+      })
     }
   }
 
@@ -132,7 +157,7 @@ export default function SessionsPage() {
   }
 
   return (
-    <div className="space-y-6 px-4 md:px-6 lg:px-8">
+    <div className="space-y-6 max-w-7xl mx-auto px-4">
       {/* Stats Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -232,7 +257,7 @@ export default function SessionsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleRevokeSession(session.id)}
+                        onClick={() => setSessionToRevoke(session.id)}
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
@@ -246,6 +271,28 @@ export default function SessionsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!sessionToRevoke} onOpenChange={() => setSessionToRevoke(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ยืนยันการบังคับออกจากระบบ</AlertDialogTitle>
+            <AlertDialogDescription>
+              คุณแน่ใจหรือไม่ว่าต้องการบังคับผู้ใช้นี้ออกจากระบบ? 
+              ผู้ใช้จะต้องเข้าสู่ระบบใหม่อีกครั้ง
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => sessionToRevoke && handleRevokeSession(sessionToRevoke)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              บังคับออกจากระบบ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

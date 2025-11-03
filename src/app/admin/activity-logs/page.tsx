@@ -117,7 +117,7 @@ export default function ActivityLogsPage() {
   ).map((item) => JSON.parse(item))
 
   return (
-    <div className="space-y-6 px-4 md:px-6 lg:px-8">
+    <div className="space-y-6 max-w-7xl mx-auto px-4">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

@@ -27,6 +27,7 @@ import { LoadingProvider } from "@/hooks/use-loading";
 import { ColorScript } from "@/components/color-script";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { ThemeApplier } from "@/components/theme-applier";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const roboto = Roboto({ weight: ['300', '400', '500', '700'], subsets: ["latin"], variable: '--font-roboto' });
@@ -91,6 +92,7 @@ export default function RootLayout({
                 {children}
               </LayoutWrapper>
             </LoadingProvider>
+            <Toaster />
           </LanguageProvider>
         </ThemeProvider>
       </body>

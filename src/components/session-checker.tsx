@@ -20,20 +20,17 @@ export function SessionChecker() {
   const [showDialog, setShowDialog] = useState(false)
   const checkingRef = useRef(false)
   const lastCheckRef = useRef(Date.now())
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    // ถ้า session ถูก invalidate แล้ว แสดงไดอล็อกทันที
-    if (globalSessionInvalidated) {
-      setShowDialog(true)
-      return
-    }
+    mountedRef.current = true
 
     const checkSession = async () => {
-      if (checkingRef.current) return
+      if (checkingRef.current) return false
       
       // Throttle: เช็คได้ไม่เกิน 1 ครั้งต่อ 3 วินาที
       const now = Date.now()
-      if (now - lastCheckRef.current < 3000) return
+      if (now - lastCheckRef.current < 3000) return true
       lastCheckRef.current = now
       
       try {
@@ -49,13 +46,23 @@ export function SessionChecker() {
 
         if (res.status === 401) {
           globalSessionInvalidated = true
-          setShowDialog(true)
+          if (mountedRef.current) {
+            setShowDialog(true)
+          }
+          return false
         }
+        return true
       } catch (error) {
         console.error('Session check error:', error)
+        return true
       } finally {
         checkingRef.current = false
       }
+    }
+
+    // ถ้า session ถูก invalidate แล้ว แสดงไดอล็อกทันที (แต่ไม่ return ก่อนเวลา)
+    if (globalSessionInvalidated) {
+      setShowDialog(true)
     }
 
     // ฟัง localStorage event สำหรับการบังคับออกแบบ cross-tab
@@ -64,15 +71,21 @@ export function SessionChecker() {
         try {
           const data = JSON.parse(e.newValue)
           console.log('Session revoked detected (localStorage):', data)
-          // แสดงไดอล็อกทันทีโดยไม่ต้องเช็ค API (เพราะแน่ใจแล้วว่าถูกเตะออก)
-          globalSessionInvalidated = true
-          setShowDialog(true)
           
-          // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
-          setTimeout(() => {
-            document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-            window.location.href = '/login'
-          }, 2000)
+          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่
+          checkSession().then((currentSessionValid) => {
+            // ถ้า API ตอบ 401 แสดงว่าเป็น session ของตัวเอง
+            if (!currentSessionValid && mountedRef.current) {
+              globalSessionInvalidated = true
+              setShowDialog(true)
+              
+              // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
+              setTimeout(() => {
+                document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+                window.location.href = '/login'
+              }, 2000)
+            }
+          })
         } catch (err) {
           console.error('Parse session_revoked error:', err)
         }
@@ -86,26 +99,38 @@ export function SessionChecker() {
       broadcastChannel.onmessage = (event) => {
         if (event.data.type === 'SESSION_REVOKED') {
           console.log('Session revoked detected (BroadcastChannel):', event.data)
-          // แสดงไดอล็อกทันทีโดยไม่ต้องเช็ค API
-          globalSessionInvalidated = true
-          setShowDialog(true)
           
-          // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
-          setTimeout(() => {
-            document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-            window.location.href = '/login'
-          }, 2000)
+          // ตรวจสอบว่าเป็น session ของตัวเองหรือไม่
+          checkSession().then((currentSessionValid) => {
+            // ถ้า API ตอบ 401 แสดงว่าเป็น session ของตัวเอง
+            if (!currentSessionValid && mountedRef.current) {
+              globalSessionInvalidated = true
+              setShowDialog(true)
+              
+              // ลบ cookie และ redirect ไป login ทันที (หลังจาก 2 วินาทีเพื่อให้เห็น dialog)
+              setTimeout(() => {
+                document.cookie = 'session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+                window.location.href = '/login'
+              }, 2000)
+            }
+          })
         }
       }
     } catch (err) {
       console.error('BroadcastChannel not supported:', err)
     }
 
-    // เช็คทันทีเมื่อโหลด
-    checkSession()
+    // เช็คทันทีเมื่อโหลด (แต่ไม่เช็คถ้า session โดน invalidate แล้ว)
+    if (!globalSessionInvalidated) {
+      checkSession()
+    }
 
     // เช็คทุก 30 วินาที (ลดลงจาก 2 วินาที)
-    const interval = setInterval(checkSession, 30000)
+    const interval = setInterval(() => {
+      if (!globalSessionInvalidated) {
+        checkSession()
+      }
+    }, 30000)
 
     // เช็คเมื่อ window กลับมา focus (เปิด tab กลับมา)
     window.addEventListener('focus', checkSession)
@@ -118,13 +143,16 @@ export function SessionChecker() {
       
       if (response.status === 401 && !args[0].toString().includes('/api/auth/login')) {
         globalSessionInvalidated = true
-        setShowDialog(true)
+        if (mountedRef.current) {
+          setShowDialog(true)
+        }
       }
       
       return response
     }
 
     return () => {
+      mountedRef.current = false
       clearInterval(interval)
       window.removeEventListener('focus', checkSession)
       window.removeEventListener('storage', handleStorageChange)

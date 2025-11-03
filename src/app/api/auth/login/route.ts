@@ -74,6 +74,29 @@ export async function POST(request: NextRequest) {
     // Create session (this will delete any existing sessions)
     await createSession(user.id, userAgent, ipAddress)
 
+    // Create default settings if not exists
+    const existingSettings = await prisma.userSettings.findUnique({
+      where: { userId: user.id }
+    })
+
+    if (!existingSettings) {
+      await prisma.userSettings.create({
+        data: {
+          userId: user.id,
+          theme: 'light',
+          primaryColor: 'blue',
+          customPrimaryColor: '#3b82f6',
+          backgroundColor: 'gradient-mint-pink',
+          customBackgroundColor: '#ffffff',
+          customGradientStart: '#a8edea',
+          customGradientEnd: '#fed6e3',
+          fontSize: 'medium',
+          fontFamily: 'inter',
+          language: 'th',
+        }
+      })
+    }
+
     // Log activity
     await logActivity(
       user.id,
