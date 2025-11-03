@@ -7,8 +7,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingScreen } from '@/components/loading-screen'
-import { OptionalFacebookLogin } from '@/components/optional-facebook-login'
-import { FacebookDebugPanel } from '@/components/facebook-debug-panel'
 import { Lock, User } from 'lucide-react'
 
 export default function LoginPage() {
@@ -140,16 +138,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <OptionalFacebookLogin
-              onSuccess={(response: any) => {
-                console.log('Facebook login success:', response)
-              }}
-              onError={(error: any) => {
-                setError(error)
-              }}
-              disabled={isLoading}
-            />
-
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>ลืมรหัสผ่าน? ติดต่อผู้ดูแลระบบ</p>
             </div>
@@ -179,8 +167,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      
-      <FacebookDebugPanel />
     </div>
   )
 }

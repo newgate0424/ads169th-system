@@ -132,7 +132,7 @@ export default function SessionsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-6 lg:px-8">
       {/* Stats Card */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

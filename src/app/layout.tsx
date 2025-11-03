@@ -27,7 +27,6 @@ import { LoadingProvider } from "@/hooks/use-loading";
 import { ColorScript } from "@/components/color-script";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { ThemeApplier } from "@/components/theme-applier";
-import { FacebookSDK } from "@/components/facebook-sdk";
 
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 const roboto = Roboto({ weight: ['300', '400', '500', '700'], subsets: ["latin"], variable: '--font-roboto' });
@@ -87,11 +86,6 @@ export default function RootLayout({
         >
           <LanguageProvider>
             <ThemeApplier />
-            <FacebookSDK 
-              appId={process.env.NEXT_PUBLIC_FACEBOOK_APP_ID || "your-facebook-app-id"}
-              version={process.env.NEXT_PUBLIC_FACEBOOK_API_VERSION || "v18.0"}
-              language="th_TH"
-            />
             <LoadingProvider>
               <LayoutWrapper>
                 {children}

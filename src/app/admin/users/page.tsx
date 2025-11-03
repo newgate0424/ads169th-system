@@ -172,7 +172,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 md:px-6 lg:px-8">
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

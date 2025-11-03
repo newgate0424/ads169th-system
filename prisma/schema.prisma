@@ -19,14 +19,9 @@ model User {
   id            String         @id @default(cuid())
   username      String         @unique
   password      String
-  name          String?        // Full name for display
-  email         String?        @unique // Email address
-  profilePicture String?       // Profile picture URL
-  facebookId    String?        @unique // Facebook user ID
   role          Role           @default(EMPLOYEE)
   teams         Json           @default("[]")
   isLocked      Boolean        @default(false)
-  isActive      Boolean        @default(true) // Account status
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
@@ -36,8 +31,6 @@ model User {
   settings      UserSettings?
   
   @@index([username])
-  @@index([email])
-  @@index([facebookId])
   @@index([role])
 }
 
@@ -84,7 +77,6 @@ model ActivityLog {
   userId      String
   action      String
   description String   @db.Text
-  details     String?  @db.Text // Additional details field
   metadata    Json?
   ipAddress   String?
   userAgent   String?  @db.Text
