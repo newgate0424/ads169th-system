@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { RealTimeIndicator } from '@/components/real-time-indicator'
 import {
   Table,
   TableBody,
@@ -60,37 +59,32 @@ export default function SessionsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [sessionToRevoke, setSessionToRevoke] = useState<string | null>(null)
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
     fetchSessions()
     fetchStats()
     
-    // Real-time: Refresh every 5 seconds
-    const statsInterval = setInterval(fetchStats, 5000)
-    const sessionsInterval = setInterval(fetchSessions, 10000)
-    
-    return () => {
-      clearInterval(statsInterval)
-      clearInterval(sessionsInterval)
-    }
+    // Refresh stats every 30 seconds
+    const interval = setInterval(fetchStats, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/system/stats', { cache: 'no-store' })
+      const res = await fetch('/api/system/stats', {
+        cache: 'no-store',
+      })
       if (res.ok) {
         const data = await res.json()
         setStats(data.stats)
-        setLastUpdate(new Date())
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error)
     }
   }
 
-  const fetchSessions = async () => {
+  const fetchSessions = async () {
     try {
       setIsRefreshing(true)
       const res = await fetch('/api/admin/sessions')
@@ -113,6 +107,7 @@ export default function SessionsPage() {
       })
 
       if (res.ok) {
+        // ส่งสัญญาณผ่าน BroadcastChannel เฉพาะ session ที่ถูกเตะออก
         const revokedSession = sessions.find(s => s.id === sessionId)
         if (revokedSession) {
           try {
@@ -128,6 +123,7 @@ export default function SessionsPage() {
             console.error('BroadcastChannel error:', err)
           }
           
+          // ส่งผ่าน localStorage เป็น fallback (สำหรับ cross-tab)
           localStorage.setItem('session_revoked', JSON.stringify({
             sessionId,
             userId: revokedSession.userId,
@@ -197,21 +193,9 @@ export default function SessionsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4">
-      {/* Header with Real-time Indicator */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">จัดการเซสชัน</h1>
-          <p className="text-sm text-muted-foreground mt-1">ดูและจัดการผู้ใช้ที่ออนไลน์</p>
-        </div>
-        <RealTimeIndicator 
-          isUpdating={isRefreshing}
-          lastUpdate={lastUpdate || undefined}
-          interval={5}
-        />
-      </div>
-
       {/* Stats Cards Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* ผู้ใช้ทั้งหมด */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ผู้ใช้ทั้งหมด</CardTitle>
@@ -219,10 +203,13 @@ export default function SessionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">ทั้งหมดในระบบ</p>
+            <p className="text-xs text-muted-foreground">
+              ทั้งหมดในระบบ
+            </p>
           </CardContent>
         </Card>
 
+        {/* ผู้ใช้ออนไลน์ */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ผู้ใช้ออนไลน์</CardTitle>
@@ -236,6 +223,7 @@ export default function SessionsPage() {
           </CardContent>
         </Card>
 
+        {/* บัญชีถูกล็อค */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">บัญชีถูกล็อค</CardTitle>
@@ -243,10 +231,13 @@ export default function SessionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{stats?.lockedUsers || 0}</div>
-            <p className="text-xs text-muted-foreground">บัญชีที่ถูกระงับ</p>
+            <p className="text-xs text-muted-foreground">
+              บัญชีที่ถูกระงับ
+            </p>
           </CardContent>
         </Card>
 
+        {/* สถานะระบบ */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">สถานะระบบ</CardTitle>
@@ -254,11 +245,14 @@ export default function SessionsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-500">ปกติ</div>
-            <p className="text-xs text-muted-foreground">ทำงานเป็นปกติ</p>
+            <p className="text-xs text-muted-foreground">
+              ทำงานเป็นปกติ
+            </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Sessions Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -266,7 +260,12 @@ export default function SessionsPage() {
               <CardTitle>เซสชันที่ active</CardTitle>
               <CardDescription>รายการผู้ใช้ที่เข้าสู่ระบบอยู่</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchSessions} disabled={isRefreshing}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchSessions}
+              disabled={isRefreshing}
+            >
               <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               รีเฟรช
             </Button>
@@ -277,7 +276,9 @@ export default function SessionsPage() {
             <div className="text-center py-12">
               <UserCircle className="mx-auto h-12 w-12 text-muted-foreground" />
               <h3 className="mt-4 text-lg font-medium">ไม่มีผู้ใช้ออนไลน์</h3>
-              <p className="mt-2 text-sm text-muted-foreground">ไม่มีเซสชันที่ active ในขณะนี้</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                ไม่มีเซสชันที่ active ในขณะนี้
+              </p>
             </div>
           ) : (
             <Table>
@@ -296,13 +297,17 @@ export default function SessionsPage() {
               <TableBody>
                 {sessions.map((session) => (
                   <TableRow key={session.id}>
-                    <TableCell className="font-medium">{session.user.username}</TableCell>
+                    <TableCell className="font-medium">
+                      {session.user.username}
+                    </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
+                      <span
+                        className={`px-2 py-1 text-xs rounded-full ${
                           session.user.role === 'ADMIN'
                             ? 'bg-primary/10 text-primary'
                             : 'bg-muted text-muted-foreground'
-                        }`}>
+                        }`}
+                      >
                         {session.user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
                       </span>
                     </TableCell>
@@ -313,9 +318,15 @@ export default function SessionsPage() {
                       </div>
                     </TableCell>
                     <TableCell>{getBrowser(session.userAgent)}</TableCell>
-                    <TableCell className="font-mono text-xs">{session.ipAddress || 'ไม่ทราบ'}</TableCell>
-                    <TableCell>{new Date(session.createdAt).toLocaleString('th-TH')}</TableCell>
-                    <TableCell>{getTimeRemaining(session.expiresAt)}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {session.ipAddress || 'ไม่ทราบ'}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(session.createdAt).toLocaleString('th-TH')}
+                    </TableCell>
+                    <TableCell>
+                      {getTimeRemaining(session.expiresAt)}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="ghost"
@@ -335,6 +346,7 @@ export default function SessionsPage() {
         </CardContent>
       </Card>
 
+      {/* ผู้ใช้ที่ออนไลน์ */}
       {stats && stats.onlineUsers && stats.onlineUsers.length > 0 && (
         <Card>
           <CardHeader>
@@ -363,7 +375,9 @@ export default function SessionsPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{user.ipAddress || 'ไม่ทราบ IP'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.ipAddress || 'ไม่ทราบ IP'}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(user.loginAt).toLocaleTimeString('th-TH')}
                     </p>
@@ -375,6 +389,7 @@ export default function SessionsPage() {
         </Card>
       )}
 
+      {/* Confirmation Dialog */}
       <AlertDialog open={!!sessionToRevoke} onOpenChange={() => setSessionToRevoke(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

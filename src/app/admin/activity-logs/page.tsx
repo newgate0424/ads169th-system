@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { RealTimeIndicator } from '@/components/real-time-indicator'
 import {
   Table,
   TableBody,
@@ -65,9 +66,20 @@ export default function ActivityLogsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [filterAction, setFilterAction] = useState<string>('all')
   const [filterUser, setFilterUser] = useState<string>('all')
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
     fetchLogs()
+    
+    // Real-time: Refresh every 10 seconds
+    const interval = setInterval(() => {
+      // Only auto-refresh if on page 1 (latest logs)
+      if (page === 1) {
+        fetchLogs()
+      }
+    }, 10000)
+    
+    return () => clearInterval(interval)
   }, [page, filterAction, filterUser])
 
   const fetchLogs = async () => {
@@ -91,6 +103,7 @@ export default function ActivityLogsPage() {
       
       setLogs(data.logs || [])
       setTotalPages(Math.ceil((data.total || 0) / limit))
+      setLastUpdate(new Date())
     } catch (error) {
       console.error('Failed to fetch logs:', error)
     } finally {
@@ -118,6 +131,19 @@ export default function ActivityLogsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4">
+      {/* Header with Real-time Indicator */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">บันทึกกิจกรรม</h1>
+          <p className="text-sm text-muted-foreground mt-1">ติดตามการใช้งานของผู้ใช้</p>
+        </div>
+        <RealTimeIndicator 
+          isUpdating={isRefreshing}
+          lastUpdate={lastUpdate || undefined}
+          interval={10}
+        />
+      </div>
+
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RealTimeIndicator } from '@/components/real-time-indicator'
 import {
   Table,
   TableBody,
@@ -57,6 +58,7 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -66,6 +68,10 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers()
+    
+    // Real-time: Refresh every 15 seconds
+    const interval = setInterval(fetchUsers, 15000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchUsers = async () => {
@@ -73,6 +79,7 @@ export default function UsersPage() {
       const res = await fetch('/api/admin/users')
       const data = await res.json()
       setUsers(data.users || [])
+      setLastUpdate(new Date())
     } catch (error) {
       console.error('Failed to fetch users:', error)
     } finally {
@@ -173,6 +180,19 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4">
+      {/* Header with Real-time Indicator */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">จัดการผู้ใช้</h1>
+          <p className="text-sm text-muted-foreground mt-1">เพิ่ม แก้ไข และจัดการผู้ใช้ในระบบ</p>
+        </div>
+        <RealTimeIndicator 
+          isUpdating={isLoading}
+          lastUpdate={lastUpdate || undefined}
+          interval={15}
+        />
+      </div>
+
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

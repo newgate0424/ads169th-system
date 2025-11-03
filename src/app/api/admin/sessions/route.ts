@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin, logActivity, getClientIP } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 // GET /api/admin/sessions - Get all active sessions
 export async function GET(request: NextRequest) {
@@ -95,6 +96,12 @@ export async function DELETE(request: NextRequest) {
       { sessionId, username: targetSession.user.username },
       ipAddress,
       userAgent
+    )
+
+    // Log to console
+    logger.auth.sessionRevoked(
+      targetSession.user.username,
+      session.username
     )
 
     return NextResponse.json({ success: true })

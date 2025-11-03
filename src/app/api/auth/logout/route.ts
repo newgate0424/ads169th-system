@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { deleteSession, getSession, logActivity, getClientIP } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,9 @@ export async function POST(request: NextRequest) {
         ipAddress,
         userAgent
       )
+
+      // Log logout
+      logger.auth.logout(session.username)
     }
 
     // Delete session

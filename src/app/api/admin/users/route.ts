@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin, hashPassword, logActivity, getClientIP } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 const createUserSchema = z.object({
   username: z.string().min(3).max(50),
@@ -112,6 +113,9 @@ export async function POST(request: NextRequest) {
       ipAddress,
       userAgent
     )
+
+    // Log to console
+    logger.admin.userCreated(user.username, user.role, session.username)
 
     return NextResponse.json({ user }, { status: 201 })
   } catch (error: any) {

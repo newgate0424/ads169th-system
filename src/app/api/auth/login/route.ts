@@ -9,6 +9,8 @@ import {
   logActivity,
   getClientIP,
 } from '@/lib/auth'
+import { logger } from '@/lib/logger'
+import { checkLoginRateLimit } from '@/lib/rate-limit'
 
 const loginSchema = z.object({
   username: z.string().min(3, 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร').max(50),
@@ -17,10 +19,25 @@ const loginSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    const ipAddress = getClientIP(request.headers) || 'unknown'
+    
+    // ตรวจสอบ rate limit ก่อน
+    const rateLimit = checkLoginRateLimit(ipAddress)
+    if (!rateLimit.success) {
+      const resetTime = new Date(rateLimit.resetTime)
+      logger.auth.failed('unknown', `Rate limit exceeded from ${ipAddress}`)
+      
+      return NextResponse.json(
+        { 
+          error: 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่ในภายหลัง',
+          resetTime: resetTime.toISOString(),
+        },
+        { status: 429 }
+      )
+    }
+    
     const body = await request.json()
     const { username, password } = loginSchema.parse(body)
-
-    const ipAddress = getClientIP(request.headers)
     const userAgent = request.headers.get('user-agent') || undefined
 
     // Find user by username
@@ -31,6 +48,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       // Record failed attempt
       await recordLoginAttempt(username, false, undefined, ipAddress, userAgent)
+      logger.auth.failed(username, 'ไม่พบผู้ใช้')
       
       return NextResponse.json(
         { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
@@ -40,6 +58,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user is locked
     if (user.isLocked) {
+      logger.auth.failed(username, 'บัญชีถูกล็อค')
       return NextResponse.json(
         { error: 'บัญชีนี้ถูกล็อค กรุณาติดต่อผู้ดูแลระบบ' },
         { status: 403 }
@@ -49,6 +68,7 @@ export async function POST(request: NextRequest) {
     // Check login attempts
     const tooManyAttempts = await checkLoginAttempts(user.id)
     if (tooManyAttempts) {
+      logger.auth.failed(username, 'พยายามเข้าสู่ระบบมากเกินไป')
       return NextResponse.json(
         { error: 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่ในอีก 10 นาที' },
         { status: 429 }
@@ -61,6 +81,7 @@ export async function POST(request: NextRequest) {
     if (!isValidPassword) {
       // Record failed attempt
       await recordLoginAttempt(username, false, user.id, ipAddress, userAgent)
+      logger.auth.failed(username, 'รหัสผ่านไม่ถูกต้อง')
       
       return NextResponse.json(
         { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
@@ -73,6 +94,9 @@ export async function POST(request: NextRequest) {
 
     // Create session (this will delete any existing sessions)
     await createSession(user.id, userAgent, ipAddress)
+
+    // Log successful login
+    logger.auth.login(username, ipAddress || undefined)
 
     // Create default settings if not exists
     const existingSettings = await prisma.userSettings.findUnique({

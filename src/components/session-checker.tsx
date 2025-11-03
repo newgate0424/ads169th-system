@@ -37,7 +37,8 @@ export function SessionChecker() {
       
       try {
         checkingRef.current = true
-        const res = await fetch('/api/auth/me', {
+        // ใช้ keep-alive endpoint ที่เบากว่า /api/auth/me
+        const res = await fetch('/api/auth/keep-alive', {
           method: 'GET',
           cache: 'no-store',
           headers: {
@@ -127,15 +128,22 @@ export function SessionChecker() {
       checkSession()
     }
 
-    // เช็คทุก 30 วินาที (ลดลงจาก 2 วินาที)
+    // เช็คทุก 2 นาที (120000ms) - ลดการเช็คบ่อย ๆ
     const interval = setInterval(() => {
       if (!globalSessionInvalidated) {
         checkSession()
       }
-    }, 30000)
+    }, 120000)
 
-    // เช็คเมื่อ window กลับมา focus (เปิด tab กลับมา)
-    window.addEventListener('focus', checkSession)
+    // เช็คเมื่อ window กลับมา focus (เปิด tab กลับมา) - สำคัญมาก!
+    const handleFocus = () => {
+      // เช็คทันทีเมื่อกลับมาที่หน้าต่าง
+      if (!globalSessionInvalidated) {
+        checkSession()
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
     window.addEventListener('storage', handleStorageChange) // ฟัง localStorage
 
     // Intercept fetch เพื่อตรวจจับ 401 ทันที (วิธีหลักในการตรวจจับ)
@@ -156,7 +164,7 @@ export function SessionChecker() {
     return () => {
       mountedRef.current = false
       clearInterval(interval)
-      window.removeEventListener('focus', checkSession)
+      window.removeEventListener('focus', handleFocus)
       window.removeEventListener('storage', handleStorageChange)
       window.fetch = originalFetch
       if (broadcastChannel) {

@@ -67,9 +67,12 @@ const fonts = [
 ]
 
 const fontSizes = [
-  { name: 'เล็ก', value: 'small' },
-  { name: 'กลาง', value: 'medium' },
-  { name: 'ใหญ่', value: 'large' },
+  { name: '13px', value: '13', px: 13 },
+  { name: '14px', value: '14', px: 14 },
+  { name: '15px', value: '15', px: 15 },
+  { name: '16px', value: '16', px: 16 },
+  { name: '17px', value: '17', px: 17 },
+  { name: '18px', value: '18', px: 18 },
 ]
 
 export default function SettingsPage() {
@@ -87,7 +90,7 @@ export default function SettingsPage() {
     customGradientStart: '#a8edea',
     customGradientEnd: '#fed6e3',
     fontFamily: 'inter',
-    fontSize: 'medium',
+    fontSize: '16',
     language: 'th',
   })
 
@@ -172,7 +175,7 @@ export default function SettingsPage() {
           customGradientStart: data.settings.customGradientStart || '#a8edea',
           customGradientEnd: data.settings.customGradientEnd || '#fed6e3',
           fontFamily: data.settings.fontFamily || 'inter',
-          fontSize: data.settings.fontSize || 'medium',
+          fontSize: data.settings.fontSize || '16',
           language: data.settings.language || savedLanguage,
         }
         setSettings(loadedSettings)
@@ -636,9 +639,9 @@ export default function SettingsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                    {t('settings.font.thai')}
+                    {t('settings.font.international')}
                   </div>
-                  {fonts.filter(f => f.category === 'ไทย').map((font) => (
+                  {fonts.filter(f => f.category === 'สากล').map((font) => (
                     <SelectItem 
                       key={font.value} 
                       value={font.value}
@@ -648,9 +651,9 @@ export default function SettingsPage() {
                     </SelectItem>
                   ))}
                   <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-2">
-                    {t('settings.font.international')}
+                    {t('settings.font.thai')}
                   </div>
-                  {fonts.filter(f => f.category === 'สากล').map((font) => (
+                  {fonts.filter(f => f.category === 'ไทย').map((font) => (
                     <SelectItem 
                       key={font.value} 
                       value={font.value}

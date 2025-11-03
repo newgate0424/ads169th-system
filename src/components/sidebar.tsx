@@ -95,23 +95,6 @@ export function Sidebar({ user }: SidebarProps) {
             </div>
           )}
         </div>
-        {!isCollapsed && user.teams.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {user.teams.slice(0, 3).map((team) => (
-              <span
-                key={team}
-                className="px-3 py-1 text-xs font-light bg-primary/10 text-primary rounded-full"
-              >
-                {team}
-              </span>
-            ))}
-            {user.teams.length > 3 && (
-              <span className="px-3 py-1 text-xs font-light bg-primary/5 text-foreground/40 rounded-full">
-                +{user.teams.length - 3}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Navigation */}
@@ -121,7 +104,11 @@ export function Sidebar({ user }: SidebarProps) {
           const isActive = pathname === item.href
 
           return (
-            <Link key={item.href} href={item.href}>
+            <Link 
+              key={item.href} 
+              href={item.href}
+              prefetch={true}
+            >
               <button
                 className={cn(
                   'w-full flex items-center gap-4 px-4 py-3 text-sm font-light transition-colors rounded-lg',

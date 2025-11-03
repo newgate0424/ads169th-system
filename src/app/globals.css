@@ -200,7 +200,15 @@ section[class*="bg-card"],
 :root[data-font="mali"], :root[data-font="mali"] body { font-family: var(--font-mali), sans-serif !important; }
 :root[data-font="chakra-petch"], :root[data-font="chakra-petch"] body { font-family: var(--font-chakra-petch), sans-serif !important; }
 
-/* Font Sizes */
+/* Font Sizes - ใช้ค่า pixel โดยตรง */
+:root[data-font-size="13"] { font-size: 13px; }
+:root[data-font-size="14"] { font-size: 14px; }
+:root[data-font-size="15"] { font-size: 15px; }
+:root[data-font-size="16"] { font-size: 16px; }
+:root[data-font-size="17"] { font-size: 17px; }
+:root[data-font-size="18"] { font-size: 18px; }
+
+/* รองรับค่าเก่าด้วย */
 :root[data-font-size="small"] { font-size: 14px; }
 :root[data-font-size="medium"] { font-size: 16px; }
 :root[data-font-size="large"] { font-size: 18px; }

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LoadingScreen } from '@/components/loading-screen'
+import { RealTimeIndicator } from '@/components/real-time-indicator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Shield, Users, Activity, Settings, UserCircle, ArrowRight, Monitor, TrendingUp, Clock } from 'lucide-react'
 import { useLanguage } from '@/contexts/language-context'
@@ -36,19 +37,30 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [stats, setStats] = useState<SystemStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isStatsLoading, setIsStatsLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
+    // Optimistic: โหลด user ก่อน, แล้วค่อยโหลด stats
     fetchUser()
-    fetchStats()
     
-    // Refresh stats every 30 seconds
-    const interval = setInterval(fetchStats, 30000)
+    // Real-time: Refresh stats every 10 seconds
+    const interval = setInterval(fetchStats, 10000)
     return () => clearInterval(interval)
   }, [])
+  
+  // โหลด stats หลังจากโหลด user เสร็จแล้ว
+  useEffect(() => {
+    if (user) {
+      fetchStats()
+    }
+  }, [user])
 
   const fetchUser = async () => {
     try {
-      const res = await fetch('/api/auth/me')
+      const res = await fetch('/api/auth/me', {
+        cache: 'no-store',
+      })
       const data = await res.json()
       
       if (!data.user) {
@@ -66,14 +78,20 @@ export default function DashboardPage() {
   }
 
   const fetchStats = async () => {
+    setIsStatsLoading(true)
     try {
-      const res = await fetch('/api/system/stats')
+      const res = await fetch('/api/system/stats', {
+        cache: 'no-store',
+      })
       if (res.ok) {
         const data = await res.json()
         setStats(data.stats)
+        setLastUpdate(new Date())
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error)
+    } finally {
+      setIsStatsLoading(false)
     }
   }
 
@@ -136,12 +154,23 @@ export default function DashboardPage() {
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Section */}
       <div className="space-y-2">
-        <h1 className="text-4xl font-light tracking-tight text-foreground">
-          {t('nav.dashboard')}
-        </h1>
-        <p className="text-lg font-light text-foreground/60">
-          ยินดีต้อนรับ คุณ{user.username} - เข้าสู่ระบบในฐานะ {user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-light tracking-tight text-foreground">
+              {t('nav.dashboard')}
+            </h1>
+            <p className="text-lg font-light text-foreground/60">
+              ยินดีต้อนรับ คุณ{user.username} - เข้าสู่ระบบในฐานะ {user.role === 'ADMIN' ? 'ผู้ดูแลระบบ' : 'พนักงาน'}
+            </p>
+          </div>
+          {user.role === 'ADMIN' && (
+            <RealTimeIndicator 
+              isUpdating={isStatsLoading}
+              lastUpdate={lastUpdate || undefined}
+              interval={10}
+            />
+          )}
+        </div>
       </div>
 
       {/* Stats Cards - Only for Admin */}
