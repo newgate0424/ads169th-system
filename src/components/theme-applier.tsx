@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { usePathname } from 'next/navigation'
 
 const backgroundColors = [
   { name: 'ไล่เฉดเขียวมิ้นต์-ชมพู', value: 'gradient-mint-pink', gradient: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', type: 'gradient' },
@@ -22,6 +23,7 @@ const backgroundColors = [
 export function ThemeApplier() {
   const { theme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     setMounted(true)
@@ -29,6 +31,24 @@ export function ThemeApplier() {
 
   useEffect(() => {
     if (!mounted) return
+
+    // ถ้าอยู่ในหน้า login ใช้ค่า default ไม่ดึงจาก API
+    const isLoginPage = pathname === '/login'
+    
+    if (isLoginPage) {
+      // ใช้ค่า default สำหรับหน้า login
+      const defaultSettings = {
+        primaryColor: 'blue',
+        customPrimaryColor: '#3b82f6',
+        backgroundColor: 'gradient-mint-pink',
+        customGradientStart: '#a8edea',
+        customGradientEnd: '#fed6e3',
+        fontFamily: 'inter',
+        fontSize: 'medium',
+      }
+      applyThemeSettings(defaultSettings)
+      return
+    }
 
     // โหลด settings จาก localStorage
     const loadSettings = () => {
@@ -61,11 +81,22 @@ export function ThemeApplier() {
         }
       } catch (error) {
         console.error('Failed to fetch settings:', error)
+        // ใช้ค่า default ถ้าดึงไม่สำเร็จ
+        const defaultSettings = {
+          primaryColor: 'blue',
+          customPrimaryColor: '#3b82f6',
+          backgroundColor: 'gradient-mint-pink',
+          customGradientStart: '#a8edea',
+          customGradientEnd: '#fed6e3',
+          fontFamily: 'inter',
+          fontSize: 'medium',
+        }
+        applyThemeSettings(defaultSettings)
       }
     }
 
     loadSettings()
-  }, [mounted])
+  }, [mounted, pathname])
 
   // Re-apply when theme changes
   useEffect(() => {

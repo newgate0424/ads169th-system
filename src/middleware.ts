@@ -33,7 +33,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Public paths that don't require authentication
-  const publicPaths = ['/login', '/privacy', '/terms']
+  const publicPaths = ['/login', '/privacy', '/terms', '/api/sync', '/api/test-env']
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
 
   // If no session cookie and trying to access protected route

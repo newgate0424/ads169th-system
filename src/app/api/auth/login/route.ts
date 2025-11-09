@@ -50,6 +50,9 @@ export async function POST(request: NextRequest) {
       await recordLoginAttempt(username, false, undefined, ipAddress, userAgent)
       logger.auth.failed(username, 'ไม่พบผู้ใช้')
       
+      // Note: Cannot log to ActivityLog without valid userId
+      // Failed attempts are tracked in LoginAttempt table instead
+      
       return NextResponse.json(
         { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },
         { status: 401 }
@@ -59,6 +62,17 @@ export async function POST(request: NextRequest) {
     // Check if user is locked
     if (user.isLocked) {
       logger.auth.failed(username, 'บัญชีถูกล็อค')
+      
+      // Log failed login attempt due to locked account
+      await logActivity(
+        user.id,
+        'LOGIN_FAILED',
+        'พยายามเข้าสู่ระบบด้วยบัญชีที่ถูกล็อค',
+        { username: user.username, reason: 'account_locked' },
+        ipAddress,
+        userAgent
+      )
+      
       return NextResponse.json(
         { error: 'บัญชีนี้ถูกล็อค กรุณาติดต่อผู้ดูแลระบบ' },
         { status: 403 }
@@ -69,6 +83,17 @@ export async function POST(request: NextRequest) {
     const tooManyAttempts = await checkLoginAttempts(user.id)
     if (tooManyAttempts) {
       logger.auth.failed(username, 'พยายามเข้าสู่ระบบมากเกินไป')
+      
+      // Log failed login attempt due to too many attempts
+      await logActivity(
+        user.id,
+        'LOGIN_FAILED',
+        'มีการพยายามเข้าสู่ระบบมากเกินไป',
+        { username: user.username, reason: 'too_many_attempts' },
+        ipAddress,
+        userAgent
+      )
+      
       return NextResponse.json(
         { error: 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่ในอีก 10 นาที' },
         { status: 429 }
@@ -82,6 +107,16 @@ export async function POST(request: NextRequest) {
       // Record failed attempt
       await recordLoginAttempt(username, false, user.id, ipAddress, userAgent)
       logger.auth.failed(username, 'รหัสผ่านไม่ถูกต้อง')
+      
+      // Log failed login attempt due to wrong password
+      await logActivity(
+        user.id,
+        'LOGIN_FAILED',
+        'พยายามเข้าสู่ระบบด้วยรหัสผ่านที่ไม่ถูกต้อง',
+        { username: user.username, reason: 'wrong_password' },
+        ipAddress,
+        userAgent
+      )
       
       return NextResponse.json(
         { error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' },

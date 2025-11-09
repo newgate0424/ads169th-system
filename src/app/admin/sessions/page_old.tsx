@@ -84,7 +84,7 @@ export default function SessionsPage() {
     }
   }
 
-  const fetchSessions = async () {
+  const fetchSessions = async () => {
     try {
       setIsRefreshing(true)
       const res = await fetch('/api/admin/sessions')

@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
     if (userId) where.userId = userId
     if (action) where.action = action
 
-    const [logs, total] = await Promise.all([
+    // Fetch activity logs
+    const [activityLogs, activityTotal] = await Promise.all([
       prisma.activityLog.findMany({
         where,
         include: {
@@ -37,8 +38,60 @@ export async function GET(request: NextRequest) {
       prisma.activityLog.count({ where }),
     ])
 
+    // Fetch failed login attempts if no specific action filter or if filtering for LOGIN_FAILED
+    let failedLogins: any[] = []
+    if (!action || action === 'LOGIN_FAILED') {
+      const failedLoginAttempts = await prisma.loginAttempt.findMany({
+        where: {
+          success: false,
+          ...(userId && { userId }),
+        },
+        include: {
+          user: {
+            select: {
+              username: true,
+              role: true,
+            },
+          },
+        },
+        orderBy: {
+          attemptAt: 'desc',
+        },
+        take: limit,
+      })
+
+      // Transform failed login attempts to match ActivityLog format
+      failedLogins = failedLoginAttempts.map(attempt => ({
+        id: attempt.id,
+        userId: attempt.userId || 'unknown',
+        action: 'LOGIN_FAILED',
+        description: `พยายามเข้าสู่ระบบด้วยชื่อผู้ใช้: ${attempt.username}${!attempt.userId ? ' (ไม่พบผู้ใช้)' : ''}`,
+        metadata: {
+          username: attempt.username,
+          reason: !attempt.userId ? 'user_not_found' : 'wrong_password',
+        },
+        ipAddress: attempt.ipAddress,
+        userAgent: attempt.userAgent,
+        createdAt: attempt.attemptAt.toISOString(),
+        user: attempt.user || {
+          username: attempt.username,
+          role: 'UNKNOWN',
+        },
+      }))
+    }
+
+    // Combine and sort all logs by date
+    const allLogs = [...activityLogs, ...failedLogins].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ).slice(0, limit)
+
+    const total = activityTotal + (failedLogins.length > 0 ? await prisma.loginAttempt.count({
+      where: { success: false, ...(userId && { userId }) }
+    }) : 0)
+
     return NextResponse.json({
-      logs,
+      logs: allLogs,
+      total,
       pagination: {
         page,
         limit,

@@ -39,6 +39,7 @@ interface ActivityLog {
 
 const actionLabels: Record<string, string> = {
   'LOGIN': 'เข้าสู่ระบบ',
+  'LOGIN_FAILED': 'เข้าสู่ระบบล้มเหลว',
   'LOGOUT': 'ออกจากระบบ',
   'USER_CREATE': 'สร้างผู้ใช้',
   'USER_UPDATE': 'แก้ไขผู้ใช้',
@@ -49,6 +50,7 @@ const actionLabels: Record<string, string> = {
 
 const actionColors: Record<string, string> = {
   'LOGIN': 'bg-green-500/10 text-green-500',
+  'LOGIN_FAILED': 'bg-red-500/10 text-red-500',
   'LOGOUT': 'bg-yellow-500/10 text-yellow-500',
   'USER_CREATE': 'bg-blue-500/10 text-blue-500',
   'USER_UPDATE': 'bg-purple-500/10 text-purple-500',
@@ -159,7 +161,7 @@ export default function ActivityLogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">เข้าสู่ระบบ</CardTitle>
+            <CardTitle className="text-sm font-medium">เข้าสู่ระบบสำเร็จ</CardTitle>
             <Activity className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -172,12 +174,12 @@ export default function ActivityLogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">สร้างผู้ใช้</CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">เข้าสู่ระบบล้มเหลว</CardTitle>
+            <Activity className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter((l) => l.action === 'USER_CREATE').length}
+              {logs.filter((l) => l.action === 'LOGIN_FAILED').length}
             </div>
             <p className="text-xs text-muted-foreground">ครั้ง</p>
           </CardContent>
@@ -185,12 +187,12 @@ export default function ActivityLogsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ลบผู้ใช้</CardTitle>
-            <Activity className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">จัดการผู้ใช้</CardTitle>
+            <Activity className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {logs.filter((l) => l.action === 'USER_DELETE').length}
+              {logs.filter((l) => ['USER_CREATE', 'USER_UPDATE', 'USER_DELETE'].includes(l.action)).length}
             </div>
             <p className="text-xs text-muted-foreground">ครั้ง</p>
           </CardContent>

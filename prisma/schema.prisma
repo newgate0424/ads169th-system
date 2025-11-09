@@ -105,3 +105,52 @@ model LoginAttempt {
   @@index([attemptAt])
   @@index([success])
 }
+
+model SyncData {
+  id                  String    @id @default(cuid())
+  team                String
+  b                   String?
+  adser               String
+  date                DateTime
+  message             Int       @default(0)
+  messageMeta         Int       @default(0)
+  lostMessages        Int       @default(0)
+  netMessages         Int       @default(0)
+  planSpend           Float     @default(0)
+  spend               Float     @default(0)
+  planMessage         Int       @default(0)
+  l                   Int       @default(0)
+  deposit             Int       @default(0)
+  n                   Int       @default(0)
+  turnoverAdser       Float     @default(0)
+  p                   Float     @default(0)
+  turnover            Float     @default(0)
+  cover               Float     @default(0)
+  pageBlocks7days     Int       @default(0)
+  pageBlocks30days    Int       @default(0)
+  silent              Int       @default(0)
+  duplicate           Int       @default(0)
+  hasUser             Int       @default(0)
+  spam                Int       @default(0)
+  blocked             Int       @default(0)
+  under18             Int       @default(0)
+  over50              Int       @default(0)
+  foreign             Int       @default(0)
+  sheetName           String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@index([team])
+  @@index([adser])
+  @@index([date])
+  @@index([sheetName])
+  @@unique([team, adser, date, sheetName])
+}
+
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  rate        Float    // USD to THB rate
+  timestamp   DateTime @default(now())
+  
+  @@index([timestamp])
+}

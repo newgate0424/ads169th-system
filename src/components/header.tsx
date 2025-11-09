@@ -101,7 +101,7 @@ export function Header({ user, sidebarCollapsed }: HeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-background">
+    <header className="sticky top-0 z-30 bg-background border-b">
       <div className="flex h-16 items-center px-8 gap-6">
         {/* Sidebar Toggle Button */}
         <button

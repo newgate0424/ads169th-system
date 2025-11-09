@@ -12,6 +12,9 @@ import {
   UserCircle,
   Clock,
   Menu,
+  Radio,
+  Monitor,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSidebar } from '@/contexts/sidebar-context'
@@ -38,6 +41,21 @@ const navItems: NavItem[] = [
     title: 'nav.dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+  },
+  {
+    title: 'ADS169',
+    href: '/ads169',
+    icon: Radio,
+  },
+  {
+    title: 'Monitor',
+    href: '/monitor',
+    icon: Monitor,
+  },
+  {
+    title: 'จัดการซิงค์',
+    href: '/sync',
+    icon: RefreshCw,
   },
   {
     title: 'nav.users',
@@ -74,7 +92,7 @@ export function Sidebar({ user }: SidebarProps) {
   )
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background border-r">
       {/* Header */}
       <div className="flex items-center justify-center py-6 px-4">
         <Logo collapsed={isCollapsed} />
